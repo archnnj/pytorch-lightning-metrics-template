@@ -23,6 +23,8 @@ class MeteredExperiment(pl.LightningModule):
         assert not multi_output or multi_output > 0, f"{self.__class__.__name__}: multi_output must be >= 1."
         self.multi_output = multi_output
 
+        self.save_hyperparameters(ignore=['metrics_train', 'metrics_valid', 'metrics_test'])
+
         # Metrics settings
         self._setup_metrics(metrics_train, metrics_valid, metrics_test,
                             log_loss_train, log_loss_valid, log_loss_test,

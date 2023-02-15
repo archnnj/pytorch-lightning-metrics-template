@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Any, Callable, Type
 import torch
 import torchvision
 from torch import nn
@@ -14,15 +14,16 @@ from core.experiment import MeteredExperiment
 
 class MNISTExperiment(MeteredExperiment):
     def __init__(self,
-                 model: nn.Module,
-                 loss_fcn: Callable,
+                 model_class: Type[nn.Module],
+                 model_args: Any,
+                 loss_fcn: Type[Callable],
                  optimizer_type: str = "Adam",
                  opt_kwargs: dict = None,
                  **metered_exp_kwargs: Any):
         super().__init__(**metered_exp_kwargs)
-        self.save_hyperparameters('optimizer_type', 'opt_kwargs')
-        self.model = model
-        self.loss = loss_fcn
+        self.save_hyperparameters()
+        self.model = self.hparams.model_class(**self.hparams.model_args)
+        self.loss = self.hparams.loss_fcn()
 
     def forward(self, x):
         return self.model(x)

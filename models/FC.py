@@ -10,7 +10,7 @@ class FC(pl.LightningModule):
 
     def __init__(self, in_dim, hidden_dims, out_dim, activation='relu'):
         super().__init__()
-        self.save_hyperparameters('in_dim', 'hidden_dims', 'out_dim', 'activation')
+        self.save_hyperparameters()
         self.model = nn.Sequential()
         for i in range(len(self.hparams.hidden_dims) + 1):
             in_d = self.hparams.hidden_dims[i - 1] if i > 0 else self.hparams.in_dim

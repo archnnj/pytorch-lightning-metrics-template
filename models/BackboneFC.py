@@ -5,7 +5,7 @@ from models.FC import FC
 class BackboneFC(pl.LightningModule):
     def __init__(self, in_ch, fc_hidden_dims, out_dim, fc_activation='relu', backbone='resnet18', finetuning=False):
         super().__init__()
-        self.save_hyperparameters('in_ch', 'fc_hidden_dims', 'out_dim', 'fc_activation', 'backbone', 'finetuning')
+        self.save_hyperparameters()
         self._init_backbone(backbone)
 
     def forward(self, x):

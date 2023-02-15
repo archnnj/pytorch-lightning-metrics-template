@@ -63,9 +63,6 @@ if __name__ == '__main__':
         WANDB_PATH = f'./outputs/{timestamp}/wandb/'
         mkdir_ifnexists(WANDB_PATH)
         wandb_args['save_dir'] = WANDB_PATH
-    if NEPTUNE_ENABLED:
-        NEPTUNE_PATH = f'./outputs/{timestamp}/neptune/'
-        mkdir_ifnexists(NEPTUNE_PATH)
 
     # ------------
     # datamodule setup
@@ -81,7 +78,8 @@ if __name__ == '__main__':
     # model
     # ------------
 
-    model = BackboneFC(
+    model_class = BackboneFC
+    model_args = dict(
         in_ch=in_ch,
         fc_hidden_dims=PARAMS['hidden_dims'],
         out_dim=n_classes,
@@ -94,8 +92,9 @@ if __name__ == '__main__':
     # ------------
 
     experiment = MNISTExperiment(
-        model=model,
-        loss_fcn=nn.CrossEntropyLoss(), #F.cross_entropy,
+        model_class=model_class,
+        model_args=model_args,
+        loss_fcn=nn.CrossEntropyLoss,  # F.cross_entropy,
         optimizer_type=PARAMS['optimizer'],
         opt_kwargs=PARAMS['opt_kwargs'],
         metrics_train=
@@ -147,6 +146,9 @@ if __name__ == '__main__':
     # ------------
 
     trainer.fit(experiment, datamodule=mnist_datamodule)
+
+    # To resume training from a checkpoint:
+    # trainer.fit(experiment, datamodule=mnist_datamodule, ckpt_path="some/path/to/my_checkpoint.ckpt")
 
     # ------------
     # testing
