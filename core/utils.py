@@ -1,5 +1,6 @@
 import logging
 import sys
+import os
 
 
 def fix_lightning_logger():
@@ -21,3 +22,7 @@ def fix_lightning_logger():
     stderr_handler = logging.StreamHandler(stream=sys.stderr)
     stderr_handler.addFilter(lambda rec: rec.levelno > logging.INFO)
     _logger.addHandler(stderr_handler)
+
+def mkdir_ifnexists(path):
+    if not os.path.exists(path):
+        os.makedirs(path, exist_ok=True)

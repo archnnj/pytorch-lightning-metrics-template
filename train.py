@@ -13,8 +13,7 @@ from pytorch_lightning.utilities.model_summary import ModelSummary
 from datamodules.MNISTDataModule import MNISTDataModule
 from experiments.MNISTExperiment import MNISTExperiment
 from models.BackboneFC import BackboneFC
-
-from core.utils import fix_lightning_logger
+from core.utils import fix_lightning_logger, mkdir_ifnexists
 
 
 if __name__ == '__main__':
@@ -22,19 +21,24 @@ if __name__ == '__main__':
     fix_lightning_logger()
     device = "cuda" if torch.cuda.is_available() else "auto"
 
-    neptune_args = dict(
-        project="AIRLab/MNIST_test",
-        name="MNIST test",
-        description="MNIST test",
-        log_model_checkpoints=True,
-        tags=["MNIST", "test"],
-        source_files=['**/*.py', '**/*.ipynb'],  # ['notebooks/2d_mnist_neptune.ipynb'] # [os.path.basename(__file__)]
-        #capture_hardware_metrics=False
-    )
-    wandb_args = dict(
-        project="MNIST_test",
-        name="MNIST test",
-    )
+    WANDB_ENABLED = False
+    NEPTUNE_ENABLED = False
+
+    if WANDB_ENABLED:
+        wandb_args = dict(
+            project="MNIST_test",
+            name="MNIST test",
+        )
+    if NEPTUNE_ENABLED:
+        neptune_args = dict(
+            project="AIRLab/MNIST-test",
+            name="MNIST test",
+            description="MNIST test",
+            log_model_checkpoints=True,
+            tags=["MNIST", "test"],
+            source_files=['**/*.py', '**/*.ipynb'],  # ['notebooks/2d_mnist_neptune.ipynb'] # [os.path.basename(__file__)]
+            #capture_hardware_metrics=False
+        )
     PARAMS = dict(
         dataset_id="mnist",
         architecture="resnet18",
@@ -42,8 +46,8 @@ if __name__ == '__main__':
         opt_kwargs={'lr': 1e-4, 'momentum':0.9, 'weight_decay':1e-8},  # | None
         early_stopping={'monitor': "valid/loss", 'mode': "min"},  # | None
         epochs=2,
-        batch_size=64,
-        hidden_dims=[100],
+        batch_size=32,
+        hidden_dims=[50,20],
         activation='relu',
         cuda=torch.cuda.is_available(),
         split_train_valid=[0.9, 0.1],
@@ -51,23 +55,27 @@ if __name__ == '__main__':
     )
 
     # Init constants
-    timestamp = time.strftime("%Y-%m-%d-%H:%M:%S")
+    timestamp = time.strftime("%Y%m%d%H%M%S")
     BASE_DATASET_PATH = './data'
     LIGHTNING_PATH = f'./outputs/{timestamp}/lightning/'
-    if not os.path.exists(LIGHTNING_PATH):
-        os.makedirs(LIGHTNING_PATH, exist_ok=True)
-
+    mkdir_ifnexists(LIGHTNING_PATH)
+    if WANDB_ENABLED:
+        WANDB_PATH = f'./outputs/{timestamp}/wandb/'
+        mkdir_ifnexists(WANDB_PATH)
+        wandb_args['save_dir'] = WANDB_PATH
+    if NEPTUNE_ENABLED:
+        NEPTUNE_PATH = f'./outputs/{timestamp}/neptune/'
+        mkdir_ifnexists(NEPTUNE_PATH)
 
     # ------------
     # datamodule setup
     # ------------
+
     n_classes = 10
     in_ch = 1
     mnist_datamodule = MNISTDataModule(data_dir=BASE_DATASET_PATH,
                                        batch_size=PARAMS['batch_size'],
-                                       split_train_valid=PARAMS['split_train_valid'],
-                                       num_workers=4)
-
+                                       split_train_valid=PARAMS['split_train_valid'])
 
     # ------------
     # model
@@ -95,12 +103,8 @@ if __name__ == '__main__':
                   'accuracy': torchmetrics.Accuracy(task='multiclass', num_classes=n_classes),
                   'precision': torchmetrics.Precision(task='multiclass', num_classes=n_classes, average='micro'),
                   'recall': torchmetrics.Recall(task='multiclass', num_classes=n_classes, average='micro'),
-                  #'auroc': torchmetrics.AUROC(task="multiclass", num_classes=n_classes)
-            }),
-            # MetricCollection({
-            #       'mae': torchmetrics.MeanAbsoluteError(),
-            #       'mse': torchmetrics.MeanSquaredError(),
-            # }, prefix='regr/')
+                  'auroc': torchmetrics.AUROC(task="multiclass", num_classes=n_classes)
+            }),  # , prefix='regr/')
         #],
         log_loss_train='step',
         log_loss_valid='epoch',
@@ -115,13 +119,19 @@ if __name__ == '__main__':
     # training setup
     # ------------
 
-    # neptune_logger = NeptuneLogger(**neptune_args)
-    # neptune_logger.log_hyperparams(PARAMS)
-    wandb_logger = WandbLogger(**wandb_args)
-    logger = [wandb_logger] # , neptune_logger] # False | neptune_logger
+    logger = []
+    if WANDB_ENABLED:
+        logger.append(WandbLogger(**wandb_args))
+    if NEPTUNE_ENABLED:
+        neptune_logger = NeptuneLogger(**neptune_args)
+        neptune_logger.log_hyperparams(PARAMS)
+        logger.append(neptune_logger)
 
-    checkpoint_callback = ModelCheckpoint(monitor="valid/loss", mode="min")
-    trainer_callbacks = [checkpoint_callback]
+    if WANDB_ENABLED or NEPTUNE_ENABLED:
+        checkpoint_callback = ModelCheckpoint(monitor="valid/loss", mode="min")
+        trainer_callbacks = [checkpoint_callback]
+    else:
+        trainer_callbacks = []
     if PARAMS['early_stopping']:
         early_stopping_callback = EarlyStopping(**PARAMS['early_stopping'])
         trainer_callbacks.append(early_stopping_callback)
