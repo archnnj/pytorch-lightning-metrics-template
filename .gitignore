@@ -137,11 +137,14 @@ lightning_logs/
 .DS_Store
 
 # Data
-data
-outputs
+data/*
+!data/.gitkeep
+outputs/*
+!outputs/.gitkeep
 
 # Neptune
-.neptune
+outputs/.neptune/*
+!outputs/.neptune/.gitkeep
 
 # Weights and Biases
 wandb
