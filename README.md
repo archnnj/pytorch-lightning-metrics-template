@@ -5,8 +5,10 @@ This is a simple boilerplate code for a metric-agnostic management of deep learn
 The class `core.Experiment` defines an extension of `pl.LightningModule` that abstracts the concept of deep learning experiment from its instantiation, with a specific model, optimizer and dataloader. It also automatically handles any combination of torchmetrics metrics passed at initialization, so that different metrics can be tracked without impacting the code of the experiment.<br>
 
 Model, optimizer, dataloader, and metrics can be passed at initialization. <br>
-The metrics can be passed as a dictionary or as a torchmetrics MetricCollection. It is also possible to specify whether they must be computed at each optimization step or at the end of the epoch.<br>
-It is possible to indicate different metrics for training, val and test phase.
+The metrics can be passed as a dictionary or as a torchmetrics MetricCollection. It is also possible to specify whether they must be computed at each optimization step or at the end of the epoch.
+It is possible to specify different sets of metrics for training, val and test phases.<br>
+
+All metrics can then be logged using [Weights & Biases](https://wandb.ai/site) or [Neptune.ai](https://neptune.ai/).
 
 ## Usage
 
